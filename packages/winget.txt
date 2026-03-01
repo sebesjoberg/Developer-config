@@ -1,0 +1,8 @@
+Git.Git
+Microsoft.PowerShell
+Microsoft.VisualStudioCode
+Docker.DockerDesktop
+OpenJS.NodeJS
+Python.Python.3.12
+JanDeDobbeleer.OhMyPosh
+MesloLGS.NerdFont
