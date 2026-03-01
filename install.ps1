@@ -1,6 +1,8 @@
- $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
- $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
- $isElevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$ErrorActionPreference = "Stop"
+
+$currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+$isElevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isElevated) {
     Write-Error "This installer requires elevated permissions. Re-run PowerShell as Administrator."
@@ -12,6 +14,13 @@ Write-Host "Enabling Windows long paths..."
 
 Write-Host "Installing packages..."
 .\scripts\install-winget.ps1
+
+
+Write-Host "Ensuring Meslo font is installed..."
+oh-my-posh font install meslo
+if ($LASTEXITCODE -ne 0) {
+    throw "oh-my-posh font install meslo failed with exit code $LASTEXITCODE"
+}
 
 Write-Host "Installing vscode extensions..."
 .\scripts\install-vscode.ps1
