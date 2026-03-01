@@ -1,0 +1,2 @@
+Double Shift (Search Everywhere): For that IntelliJ-style "find anything" feeling, try binding "shift""shift" to workbench.action.quickOpen.
+Move Cursor to Line Start/End: Many users map Ctrl + Up/Down to cursorLineStart/cursorLineEnd for rapid vertical movement.
