@@ -1,7 +1,12 @@
+Docker.DockerDesktop
 Git.Git
+Google.Chrome.EXE
+JanDeDobbeleer.OhMyPosh
+Microsoft.DotNet.DesktopRuntime.8
+Microsoft.DotNet.Runtime.8
 Microsoft.PowerShell
 Microsoft.VisualStudioCode
-Docker.DockerDesktop
+Microsoft.WSL
 OpenJS.NodeJS
+Python.Launcher
 Python.Python.3.12
-JanDeDobbeleer.OhMyPosh
