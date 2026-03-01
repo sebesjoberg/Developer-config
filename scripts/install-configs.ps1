@@ -7,6 +7,20 @@ $links = @{
   "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json" = "configs/windows-terminal/settings.json"
 }
 
+$allUsersProfiles = @(
+    "$env:WINDIR\System32\WindowsPowerShell\v1.0\profile.ps1",
+    "$env:WINDIR\System32\WindowsPowerShell\v1.0\Microsoft.PowerShell_profile.ps1",
+    "$env:ProgramFiles\PowerShell\7\profile.ps1",
+    "$env:ProgramFiles\PowerShell\7\Microsoft.PowerShell_profile.ps1"
+)
+
+foreach ($allUsersProfile in $allUsersProfiles) {
+    $parent = Split-Path -Parent $allUsersProfile
+    if (Test-Path $parent) {
+        $links[$allUsersProfile] = "configs/powershell/profile.ps1"
+    }
+}
+
 foreach ($target in $links.Keys) {
     $source = Join-Path $PWD $links[$target]
     $parent = Split-Path -Parent $target
