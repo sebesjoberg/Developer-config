@@ -1,9 +1,5 @@
 [
   {
-    "key": "ctrl+alt+t",
-    "command": "workbench.action.terminal.toggleTerminal"
-  },
-  {
     "key": "ctrl+shift+b",
     "command": "workbench.action.tasks.build"
   },
