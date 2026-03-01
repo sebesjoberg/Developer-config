@@ -7,4 +7,6 @@ if (Get-Module -ListAvailable -Name Terminal-Icons) {
     Import-Module Terminal-Icons
 }
 
-oh-my-posh init pwsh --config "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/jandedobbeleer.omp.json" | Invoke-Expression
+$ompConfig = "C:\config.omp.json"
+
+Invoke-Expression (& oh-my-posh init pwsh --config $ompConfig)
