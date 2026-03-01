@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
-function Prompt-YesNoDefaultNo {
+function Read-YesNoDefaultNo {
     param([string]$Message)
     while ($true) {
         $answer = Read-Host "$Message (Y/y/Yes/yes, N/n/No/no, Enter=No)"
@@ -98,14 +98,14 @@ function Merge-JsonSettingsToRepo {
             $repoValue = Get-JsonComparable -Value $repo[$key]
             $userValue = Get-JsonComparable -Value $user[$key]
             if ($repoValue -ne $userValue) {
-                $useUser = Prompt-YesNoDefaultNo -Message "$Label key `"$key`" differs. Use current user value?"
+                $useUser = Read-YesNoDefaultNo -Message "$Label key `"$key`" differs. Use current user value?"
                 if ($useUser) { $repo[$key] = $user[$key] }
             }
         }
     }
 
     foreach ($key in @($user.Keys | Where-Object { -not $repo.ContainsKey($_) } | Sort-Object)) {
-        $addKey = Prompt-YesNoDefaultNo -Message "$Label key `"$key`" exists only in current config. Add it to repo config?"
+        $addKey = Read-YesNoDefaultNo -Message "$Label key `"$key`" exists only in current config. Add it to repo config?"
         if ($addKey) { $repo[$key] = $user[$key] }
     }
 
@@ -175,7 +175,7 @@ function Merge-GitConfigToRepo {
                 $repoValue = [string]$repo[$section][$key]
                 $userValue = [string]$user[$section][$key]
                 if ($repoValue -ne $userValue) {
-                    $useUser = Prompt-YesNoDefaultNo -Message "git [$section] $key differs. Use current user value?"
+                    $useUser = Read-YesNoDefaultNo -Message "git [$section] $key differs. Use current user value?"
                     if ($useUser) { $repo[$section][$key] = $user[$section][$key] }
                 }
             }
@@ -188,7 +188,7 @@ function Merge-GitConfigToRepo {
         }
         foreach ($key in @($user[$section].Keys)) {
             if (-not $repo[$section].Contains($key)) {
-                $addKey = Prompt-YesNoDefaultNo -Message "git [$section] $key exists only in current config. Add it to repo config?"
+                $addKey = Read-YesNoDefaultNo -Message "git [$section] $key exists only in current config. Add it to repo config?"
                 if ($addKey) { $repo[$section][$key] = $user[$section][$key] }
             }
         }
@@ -197,7 +197,7 @@ function Merge-GitConfigToRepo {
     Save-GitConfigMap -Path $RepoPath -Map $repo
 }
 
-function Ensure-Link {
+function Set-ManagedLink {
     param(
         [string]$Target,
         [string]$Source,
@@ -212,7 +212,7 @@ function Ensure-Link {
         if ($PromptIfNonEmpty) {
             $raw = Get-Content -LiteralPath $Target -Raw -ErrorAction SilentlyContinue
             if (-not [string]::IsNullOrWhiteSpace($raw)) {
-                $ok = Prompt-YesNoDefaultNo -Message "Existing profile at `"$Target`" is non-empty. Overwrite with managed symlink?"
+                $ok = Read-YesNoDefaultNo -Message "Existing profile at `"$Target`" is non-empty. Overwrite with managed symlink?"
                 if (-not $ok) {
                     Write-Host "Skipping profile link for $Target"
                     return
@@ -285,5 +285,5 @@ foreach ($target in $links.Keys) {
         $target -ieq "$HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" -or
         $target -ieq "$HOME\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
     )
-    Ensure-Link -Target $target -Source $source -PromptIfNonEmpty:$isProfileTarget
+    Set-ManagedLink -Target $target -Source $source -PromptIfNonEmpty:$isProfileTarget
 }
