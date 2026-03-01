@@ -11,7 +11,7 @@ function Test-IsElevated {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Prompt-YesNoDefaultYes {
+function Read-YesNoDefaultYes {
     param([string]$Message)
     while ($true) {
         $answer = Read-Host "$Message (Y/y/Yes/yes, N/n/No/no, Enter=Yes)"
@@ -181,7 +181,25 @@ function Build-UninstallItems {
     return $items
 }
 
-function Apply-SyncSelection {
+function Build-UpdateItems {
+    param(
+        [string[]]$WingetInstalled,
+        [string[]]$VscodeInstalled
+    )
+    $items = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($id in @($WingetInstalled | Sort-Object)) {
+        $items.Add((New-ChangeItem -Target "winget" -Action "Update" -Id $id))
+    }
+
+    foreach ($id in @($VscodeInstalled | Sort-Object)) {
+        $items.Add((New-ChangeItem -Target "vscode" -Action "Update" -Id $id))
+    }
+
+    return $items
+}
+
+function Invoke-SyncSelection {
     param(
         [System.Collections.Generic.List[object]]$Items,
         [string]$WingetFile,
@@ -222,7 +240,7 @@ function Apply-SyncSelection {
     Write-Host "VS Code: added $($summary.vscodeAdd), removed $($summary.vscodeRemove)"
 }
 
-function Apply-UninstallSelection {
+function Invoke-UninstallSelection {
     param([System.Collections.Generic.List[object]]$Items)
     $summary = @{
         wingetUninstall = 0; wingetFail = 0
@@ -257,6 +275,54 @@ function Apply-UninstallSelection {
     Write-Host "VS Code: uninstalled $($summary.vscodeUninstall), failed $($summary.vscodeFail)"
 }
 
+function Invoke-UpdateSelection {
+    param([System.Collections.Generic.List[object]]$Items)
+    $summary = @{
+        wingetUpdated = 0; wingetNoUpdate = 0; wingetFail = 0
+        vscodeUpdated = 0; vscodeFail = 0
+    }
+
+    foreach ($item in @($Items | Where-Object { $_.Selected })) {
+        if ($item.Target -eq "winget") {
+            $output = winget upgrade --id $item.Id -e --silent --source winget --accept-source-agreements --accept-package-agreements 2>&1 | Out-String
+            if ($LASTEXITCODE -eq 0) {
+                $summary.wingetUpdated++
+            }
+            else {
+                $isNoOp = (
+                    $output -match "No available upgrade found" -or
+                    $output -match "No newer package versions are available" -or
+                    $output -match "No applicable upgrade found"
+                )
+                if ($isNoOp) {
+                    $summary.wingetNoUpdate++
+                }
+                else {
+                    $summary.wingetFail++
+                    Write-Host "Failed to update winget package: $($item.Id)"
+                    Write-Host $output
+                }
+            }
+        }
+        elseif ($item.Target -eq "vscode") {
+            $output = code --install-extension $item.Id --force 2>&1 | Out-String
+            if ($LASTEXITCODE -eq 0) {
+                $summary.vscodeUpdated++
+            }
+            else {
+                $summary.vscodeFail++
+                Write-Host "Failed to update VS Code extension: $($item.Id)"
+                Write-Host $output
+            }
+        }
+    }
+
+    Write-Host ""
+    Write-Host "Update apply complete."
+    Write-Host "Winget: updated $($summary.wingetUpdated), no-update $($summary.wingetNoUpdate), failed $($summary.wingetFail)"
+    Write-Host "VS Code: updated $($summary.vscodeUpdated), failed $($summary.vscodeFail)"
+}
+
 function Show-Loading {
     param([string]$Message = "Loading...")
     Clear-Host
@@ -272,6 +338,7 @@ while ($true) {
         "Sync spec files (add/remove entries)",
         "Uninstall extras (installed but not in spec)",
         "Install to specification",
+        "Update packages and extensions",
         "Exit"
     )
     $mainCursor = 0
@@ -285,7 +352,7 @@ while ($true) {
             Write-Host ("{0} {1}. {2}" -f $cursor, ($i + 1), $mainOptions[$i])
         }
         Write-Host ""
-        Write-Host "Use Up/Down + Enter (or press 1-4, Esc=Exit)."
+        Write-Host "Use Up/Down + Enter (or press 1-5, Esc=Exit)."
 
         $key = [System.Console]::ReadKey($true)
         if ($key.Key -eq [ConsoleKey]::UpArrow) {
@@ -296,16 +363,17 @@ while ($true) {
             $mainCursor = ($mainCursor + 1) % $mainOptions.Count
             continue
         }
-        if ($key.Key -eq [ConsoleKey]::Escape) { $mainCursor = 3; break }
+        if ($key.Key -eq [ConsoleKey]::Escape) { $mainCursor = 4; break }
         if ($key.Key -eq [ConsoleKey]::D1 -or $key.Key -eq [ConsoleKey]::NumPad1) { $mainCursor = 0; break }
         if ($key.Key -eq [ConsoleKey]::D2 -or $key.Key -eq [ConsoleKey]::NumPad2) { $mainCursor = 1; break }
         if ($key.Key -eq [ConsoleKey]::D3 -or $key.Key -eq [ConsoleKey]::NumPad3) { $mainCursor = 2; break }
         if ($key.Key -eq [ConsoleKey]::D4 -or $key.Key -eq [ConsoleKey]::NumPad4) { $mainCursor = 3; break }
+        if ($key.Key -eq [ConsoleKey]::D5 -or $key.Key -eq [ConsoleKey]::NumPad5) { $mainCursor = 4; break }
         if ($key.Key -eq [ConsoleKey]::Enter) { break }
     }
     $main = [string]($mainCursor + 1)
 
-    if ($main -eq "4") { break }
+    if ($main -eq "5") { break }
     if ($main -eq "3") {
         Clear-Host
         Write-Host "Install to specification selected."
@@ -314,7 +382,7 @@ while ($true) {
                 & ".\scripts\install.ps1"
             }
             else {
-                $shouldElevate = Prompt-YesNoDefaultYes -Message "This action needs Administrator privileges. Relaunch elevated now?"
+                $shouldElevate = Read-YesNoDefaultYes -Message "This action needs Administrator privileges. Relaunch elevated now?"
                 if ($shouldElevate) {
                     $repoPath = (Get-Location).Path
                     $cmd = "Set-Location -LiteralPath '$repoPath'; & '.\scripts\install.ps1'"
@@ -334,7 +402,7 @@ while ($true) {
         [void](Read-Host "Press Enter to continue")
         continue
     }
-    if ($main -ne "1" -and $main -ne "2") { continue }
+    if ($main -ne "1" -and $main -ne "2" -and $main -ne "4") { continue }
 
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Host "winget is not available in PATH."
@@ -347,7 +415,12 @@ while ($true) {
         continue
     }
 
-    Show-Loading -Message "Loading installed packages and extensions..."
+    if ($main -eq "4") {
+        Show-Loading -Message "Loading installed packages and extensions for updates..."
+    }
+    else {
+        Show-Loading -Message "Loading installed packages and extensions..."
+    }
     $wingetInstalled = Get-InstalledWingetPackageIds
     $vscodeInstalled = Get-InstalledVscodeExtensionIds
     $wingetSpec = Read-ListFile -Path $WingetFile
@@ -355,12 +428,20 @@ while ($true) {
 
     $items = if ($main -eq "1") {
         Build-SyncItems -WingetInstalled $wingetInstalled -VscodeInstalled $vscodeInstalled -WingetSpec $wingetSpec -VscodeSpec $vscodeSpec
-    } else {
+    } elseif ($main -eq "2") {
         Build-UninstallItems -WingetInstalled $wingetInstalled -VscodeInstalled $vscodeInstalled -WingetSpec $wingetSpec -VscodeSpec $vscodeSpec
+    } else {
+        Build-UpdateItems -WingetInstalled $wingetInstalled -VscodeInstalled $vscodeInstalled
     }
 
     while ($true) {
-        $title = if ($main -eq "1") { "Sync Mode (default selection: none)" } else { "Uninstall Mode (default selection: none)" }
+        $title = if ($main -eq "1") {
+            "Sync Mode (default selection: none)"
+        } elseif ($main -eq "2") {
+            "Uninstall Mode (default selection: none)"
+        } else {
+            "Update Mode (default selection: none)"
+        }
         $cursorIndex = 0
         while ($true) {
             if ($items.Count -eq 0) { $cursorIndex = 0 }
@@ -399,16 +480,20 @@ while ($true) {
                 $vscodeSpec = Read-ListFile -Path $VscodeFile
                 $items = if ($main -eq "1") {
                     Build-SyncItems -WingetInstalled $wingetInstalled -VscodeInstalled $vscodeInstalled -WingetSpec $wingetSpec -VscodeSpec $vscodeSpec
-                } else {
+                } elseif ($main -eq "2") {
                     Build-UninstallItems -WingetInstalled $wingetInstalled -VscodeInstalled $vscodeInstalled -WingetSpec $wingetSpec -VscodeSpec $vscodeSpec
+                } else {
+                    Build-UpdateItems -WingetInstalled $wingetInstalled -VscodeInstalled $vscodeInstalled
                 }
                 continue
             }
             if ($key.Key -eq [ConsoleKey]::Enter) {
                 if ($main -eq "1") {
-                    Apply-SyncSelection -Items $items -WingetFile $WingetFile -VscodeFile $VscodeFile
+                    Invoke-SyncSelection -Items $items -WingetFile $WingetFile -VscodeFile $VscodeFile
+                } elseif ($main -eq "2") {
+                    Invoke-UninstallSelection -Items $items
                 } else {
-                    Apply-UninstallSelection -Items $items
+                    Invoke-UpdateSelection -Items $items
                 }
                 Write-Host ""
                 [void](Read-Host "Press Enter to continue")

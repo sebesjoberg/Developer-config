@@ -1,33 +1,18 @@
-[user]
-    name = Sebastian Sjöberg
-    email = ss69109@gmail.com
-
-[init]
-    defaultBranch = main
-
-[pull]
-    rebase = true
+[diff]
+    colorMoved = default
 
 [rebase]
     autoStash = true
 
-[core]
-    editor = code --wait
-    autocrlf = input
-    pager = less -FRX
+[fetch]
+    prune = true
+
+[init]
+    defaultBranch = main
 
 [push]
     autoSetupRemote = true
     default = current
-
-[fetch]
-    prune = true
-
-[merge]
-    conflictstyle = zdiff3
-
-[diff]
-    colorMoved = default
 
 [alias]
     st = status
@@ -37,13 +22,25 @@
     ci = commit
     amend = commit --amend
     last = log -1 HEAD
-
     lg = log --graph --decorate --oneline --all
-
     unstage = restore --staged
     discard = restore
-
     pf = push --force-with-lease
-
     aa = add .
     cm = commit -m
+
+[core]
+    editor = code --wait
+    autocrlf = input
+    pager = less -FRX
+
+[merge]
+    conflictstyle = zdiff3
+
+[user]
+    name = Sebastian Sjöberg
+    email = ss69109@gmail.com
+
+[pull]
+    rebase = true
+
