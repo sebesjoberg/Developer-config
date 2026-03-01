@@ -1,5 +1,11 @@
 {
   "terminal.integrated.fontFamily": "MesloLGS Nerd Font",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "path": "pwsh.exe"
+    }
+  },
   "editor.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
   "editor.fontLigatures": true,
   "editor.fontSize": 14,
