@@ -1,6 +1,8 @@
 $ErrorActionPreference = "Stop"
 
-$packages = Get-Content "./packages/winget.txt"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$packagesFile = Join-Path $repoRoot "packages/winget.txt"
+$packages = Get-Content $packagesFile
 
 foreach ($pkg in $packages) {
     Write-Host "Installing $pkg..."

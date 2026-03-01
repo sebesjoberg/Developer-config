@@ -1,3 +1,5 @@
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
 $links = @{
   "$HOME\.gitconfig" = "configs/git/.gitconfig"
   "$env:SystemDrive\config.omp.json" = "configs/powershell/config.omp.json"
@@ -9,7 +11,7 @@ $links = @{
 }
 
 foreach ($target in $links.Keys) {
-    $source = Join-Path $PWD $links[$target]
+    $source = Join-Path $repoRoot $links[$target]
     $parent = Split-Path -Parent $target
     if (-not (Test-Path $parent)) {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
