@@ -1,6 +1,11 @@
+biomejs.biome
+davidanson.vscode-markdownlint
 dbaeumer.vscode-eslint
 esbenp.prettier-vscode
 github.copilot-chat
+james-yu.latex-workshop
+mattbrannon.prettiest-eslint
+ms-azuretools.vscode-containers
 ms-dotnettools.csdevkit
 ms-dotnettools.csharp
 ms-dotnettools.vscode-dotnet-runtime
@@ -8,5 +13,14 @@ ms-python.debugpy
 ms-python.python
 ms-python.vscode-pylance
 ms-python.vscode-python-envs
+ms-toolsai.jupyter
+ms-toolsai.jupyter-keymap
+ms-toolsai.jupyter-renderers
+ms-toolsai.vscode-jupyter-cell-tags
+ms-toolsai.vscode-jupyter-slideshow
 ms-vscode.powershell
 ms-vscode.vscode-typescript-next
+ms-vscode-remote.remote-containers
+ms-vscode-remote.remote-wsl
+openai.chatgpt
+redhat.vscode-yaml

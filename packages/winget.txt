@@ -1,12 +1,16 @@
+Anaconda.Anaconda3
 Docker.DockerDesktop
 Git.Git
 Google.Chrome.EXE
 JanDeDobbeleer.OhMyPosh
 Microsoft.DotNet.DesktopRuntime.8
 Microsoft.DotNet.Runtime.8
+Microsoft.DotNet.SDK.8
 Microsoft.PowerShell
+Microsoft.SQLServerManagementStudio
 Microsoft.VisualStudioCode
 Microsoft.WSL
 OpenJS.NodeJS
+Postman.Postman
 Python.Launcher
 Python.Python.3.12
