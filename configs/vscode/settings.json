@@ -13,7 +13,6 @@
   "editor.cursorBlinking": "smooth",
   "editor.minimap.enabled": false,
   "editor.wordWrap": "on",
-  "workbench.colorTheme": "Default Dark+",
   "workbench.iconTheme": "vscode-icons",
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,

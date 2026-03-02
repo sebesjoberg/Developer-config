@@ -169,8 +169,26 @@ function Merge-GitConfigToRepo {
     Write-Host ""
     Write-Host "Reviewing git config differences..."
 
+    function Test-IsMachineSpecificGitKey {
+        param(
+            [string]$Section,
+            [string]$Key
+        )
+
+        if ($Section -ieq "user") {
+            if ($Key -ieq "name" -or $Key -ieq "email" -or $Key -ieq "signingkey") {
+                return $true
+            }
+        }
+
+        return $false
+    }
+
     foreach ($section in @($repo.Keys)) {
         foreach ($key in @($repo[$section].Keys)) {
+            if (Test-IsMachineSpecificGitKey -Section $section -Key $key) {
+                continue
+            }
             if ($user.Contains($section) -and $user[$section].Contains($key)) {
                 $repoValue = [string]$repo[$section][$key]
                 $userValue = [string]$user[$section][$key]
@@ -187,6 +205,9 @@ function Merge-GitConfigToRepo {
             $repo[$section] = [ordered]@{}
         }
         foreach ($key in @($user[$section].Keys)) {
+            if (Test-IsMachineSpecificGitKey -Section $section -Key $key) {
+                continue
+            }
             if (-not $repo[$section].Contains($key)) {
                 $addKey = Read-YesNoDefaultNo -Message "git [$section] $key exists only in current config. Add it to repo config?"
                 if ($addKey) { $repo[$section][$key] = $user[$section][$key] }
@@ -223,11 +244,30 @@ function Set-ManagedLink {
     }
 
     Write-Host "Linking $Target -> $Source"
-    New-Item -ItemType SymbolicLink -Path $Target -Target $Source -Force | Out-Null
+    try {
+        New-Item -ItemType SymbolicLink -Path $Target -Target $Source -Force | Out-Null
+        return
+    }
+    catch {
+        Write-Host "Symlink failed for $Target. Trying hard link fallback..."
+    }
+
+    try {
+        New-Item -ItemType HardLink -Path $Target -Target $Source -Force | Out-Null
+        Write-Host "Created hard link for $Target"
+        return
+    }
+    catch {
+        Write-Host "Hard link failed for $Target. Falling back to copy."
+    }
+
+    Copy-Item -LiteralPath $Source -Destination $Target -Force
+    Write-Host "Copied managed file to $Target"
 }
 
 $links = [ordered]@{
     "$HOME\.gitconfig" = "configs/git/.gitconfig"
+    "$HOME\.gitconfig.local" = "configs/git/.gitconfig.local"
     "$env:SystemDrive\config.omp.json" = "configs/powershell/config.omp.json"
     "$HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" = "configs/powershell/profile.ps1"
     "$HOME\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1" = "configs/powershell/profile.ps1"
@@ -258,6 +298,27 @@ $gitSourceRelative = "configs/git/.gitconfig"
 $gitSource = Join-Path $repoRoot $gitSourceRelative
 if (Test-IsSelected -RelativeSource $gitSourceRelative) {
     Merge-GitConfigToRepo -RepoPath $gitSource -UserPath $gitTarget
+}
+
+$gitLocalSourceRelative = "configs/git/.gitconfig.local"
+$gitLocalSource = Join-Path $repoRoot $gitLocalSourceRelative
+if (Test-IsSelected -RelativeSource $gitLocalSourceRelative) {
+    if (-not (Test-Path -LiteralPath $gitLocalSource)) {
+        $gitLocalExample = Join-Path $repoRoot "configs/git/.gitconfig.local.example"
+        if (Test-Path -LiteralPath $gitLocalExample) {
+            Copy-Item -LiteralPath $gitLocalExample -Destination $gitLocalSource -Force
+            Write-Host "Created $gitLocalSource from example template."
+        }
+        else {
+            Set-Content -LiteralPath $gitLocalSource -Value @(
+                "[user]"
+                "    name = Your Name"
+                "    email = your.email@example.com"
+            )
+            Write-Host "Created $gitLocalSource with placeholder values."
+        }
+        Write-Host "Update configs/git/.gitconfig.local with your machine-specific identity."
+    }
 }
 
 $vscodeSettingsTarget = "$env:APPDATA\Code\User\settings.json"

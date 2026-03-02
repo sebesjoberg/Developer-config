@@ -42,7 +42,7 @@ List screen controls (options 1, 2, 4):
 - `Esc` back
 
 ### Notes
-- Install mode (`3`) prompts for elevation and opens an elevated PowerShell when needed.
+- Install mode (`3`) requires elevation and opens an elevated PowerShell when needed.
 - All per-item confirmation prompts default to `No` unless explicitly stated otherwise.
 
 ## For Developers
@@ -66,8 +66,26 @@ List screen controls (options 1, 2, 4):
   - Git config
 - For keys present in both but with different values: asks which value to keep.
 - For keys only in user config: asks whether to add them to repo config.
+- For git machine-specific identity keys (`user.name`, `user.email`, `user.signingkey`): does not merge them into repo config.
 - For PowerShell profiles (`profile.ps1`): if target exists and is non-empty, asks before overwrite/link.
-- Then creates/refreshes symlinks to the repo-managed files.
+- Then creates/refreshes symlinks to the repo-managed files. If linking is blocked, falls back to hard link, then file copy.
+
+### Per-machine git identity
+`configs/git/.gitconfig` includes `~/.gitconfig.local`.
+
+Option `3` now also manages `~/.gitconfig.local` by linking it to `configs/git/.gitconfig.local` in this repo.
+If `configs/git/.gitconfig.local` does not exist, installer creates it from `configs/git/.gitconfig.local.example`.
+The local file is git-ignored so each machine can keep its own identity.
+
+Create it once per machine:
+
+```ini
+[user]
+    name = Your Name
+    email = your.email@example.com
+```
+
+An example template is available at `configs/git/.gitconfig.local.example`.
 
 ### Making changes safely
 1. Edit files under `configs/` and/or `packages/`.

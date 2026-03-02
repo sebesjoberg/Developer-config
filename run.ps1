@@ -382,16 +382,10 @@ while ($true) {
                 & ".\scripts\install.ps1"
             }
             else {
-                $shouldElevate = Read-YesNoDefaultYes -Message "This action needs Administrator privileges. Relaunch elevated now?"
-                if ($shouldElevate) {
-                    $repoPath = (Get-Location).Path
-                    $cmd = "Set-Location -LiteralPath '$repoPath'; & '.\scripts\install.ps1'"
-                    Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $cmd) | Out-Null
-                    Write-Host "Started elevated PowerShell for installation."
-                }
-                else {
-                    Write-Host "Install canceled."
-                }
+                $repoPath = (Get-Location).Path
+                $cmd = "Set-Location -LiteralPath '$repoPath'; & '.\scripts\install.ps1'"
+                Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $cmd) | Out-Null
+                Write-Host "Started elevated PowerShell for installation."
             }
         }
         catch {
