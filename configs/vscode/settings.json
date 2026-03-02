@@ -26,7 +26,8 @@
     "https://www.schemastore.org/": true,
     "https://json.schemastore.org/": true,
     "https://json-schema.org/": true,
-    "https://aka.ms": true
+    "https://aka.ms": true,
+    "http://json.schemastore.org": true
   },
   "editor.formatOnSave": true
 }

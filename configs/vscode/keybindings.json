@@ -11,5 +11,15 @@
     "key": "ctrl+oem_7",
     "command": "workbench.action.terminal.toggleTerminal",
     "when": "terminal.active"
+  },
+  {
+    "key": "ctrl+e",
+    "command": "editor.action.marker.next",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+shift+e",
+    "command": "editor.action.marker.prev",
+    "when": "editorTextFocus"
   }
 ]
