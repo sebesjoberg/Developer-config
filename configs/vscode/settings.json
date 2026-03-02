@@ -27,7 +27,8 @@
     "https://json.schemastore.org/": true,
     "https://json-schema.org/": true,
     "https://aka.ms": true,
-    "http://json.schemastore.org": true
+    "http://json.schemastore.org": true,
+    "https://biomejs.dev": true
   },
   "editor.formatOnSave": true
 }

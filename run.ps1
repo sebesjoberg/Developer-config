@@ -1,3 +1,7 @@
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "", Justification = "Interactive TUI script relies on host rendering.")]
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseApprovedVerbs", "", Justification = "Function names prioritize local readability in this script.")]
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseSingularNouns", "", Justification = "Some helper names intentionally use plural nouns for list builders.")]
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions", "", Justification = "This script is an explicit interactive TUI and does not expose advanced function semantics.")]
 param(
     [string]$WingetFile = "./packages/winget.txt",
     [string]$VscodeFile = "./packages/vscode.txt"
@@ -90,35 +94,93 @@ function New-ChangeItem {
     }
 }
 
+function Get-ListPageSize {
+    $fallbackRows = 12
+    try {
+        $windowHeight = [System.Console]::WindowHeight
+        $reservedLines = 10
+        $rows = $windowHeight - $reservedLines
+        return [Math]::Max(3, $rows)
+    }
+    catch {
+        return $fallbackRows
+    }
+}
+
+function Truncate-ConsoleLine {
+    param(
+        [string]$Text,
+        [int]$MaxWidth
+    )
+    if ([string]::IsNullOrEmpty($Text)) { return "" }
+    if ($MaxWidth -le 3) { return $Text.Substring(0, [Math]::Min($Text.Length, $MaxWidth)) }
+    if ($Text.Length -le $MaxWidth) { return $Text }
+    return $Text.Substring(0, $MaxWidth - 3) + "..."
+}
+
 function Show-Items {
     param(
         [string]$Title,
         [System.Collections.Generic.List[object]]$Items,
-        [int]$CursorIndex
+        [int]$CursorIndex,
+        [int]$PageIndex,
+        [int]$PageSize,
+        [bool]$ShowHelp
     )
     Clear-Host
     Write-Host $Title
     Write-Host ("-" * $Title.Length)
     Write-Host ""
+
+    $maxWidth = 120
+    try {
+        $maxWidth = [Math]::Max(20, [System.Console]::WindowWidth - 1)
+    }
+    catch {
+        $maxWidth = 120
+    }
+
     if ($Items.Count -eq 0) {
         Write-Host "No items."
     } else {
-        for ($i = 0; $i -lt $Items.Count; $i++) {
+        if ($PageSize -lt 1) { $PageSize = 1 }
+        $totalPages = [Math]::Max(1, [int][Math]::Ceiling($Items.Count / [double]$PageSize))
+        $safePageIndex = [Math]::Min([Math]::Max(0, $PageIndex), $totalPages - 1)
+        $startIndex = $safePageIndex * $PageSize
+        $endExclusive = [Math]::Min($Items.Count, $startIndex + $PageSize)
+
+        $summaryLine = ("Page {0}/{1} | Showing {2}-{3} of {4}" -f ($safePageIndex + 1), $totalPages, ($startIndex + 1), $endExclusive, $Items.Count)
+        Write-Host (Truncate-ConsoleLine -Text $summaryLine -MaxWidth $maxWidth)
+        for ($i = $startIndex; $i -lt $endExclusive; $i++) {
             $it = $Items[$i]
             $mark = if ($it.Selected) { "x" } else { " " }
             $cursor = if ($i -eq $CursorIndex) { ">" } else { " " }
-            Write-Host ("{0} {1,3}. [{2}] {3} | {4} | {5}" -f $cursor, ($i + 1), $mark, $it.Target, $it.Action, $it.Id)
+            $line = ("{0} {1,3}. [{2}] {3} | {4} | {5}" -f $cursor, ($i + 1), $mark, $it.Target, $it.Action, $it.Id)
+            Write-Host (Truncate-ConsoleLine -Text $line -MaxWidth $maxWidth)
         }
     }
     Write-Host ""
-    Write-Host "Keys:"
-    Write-Host "  Up/Down: Move cursor"
-    Write-Host "  Space: Toggle current item"
-    Write-Host "  A: Select all"
-    Write-Host "  N: Select none"
-    Write-Host "  Enter: Apply selected"
-    Write-Host "  R: Refresh list"
-    Write-Host "  Esc: Back to main menu"
+    if ($ShowHelp) {
+        $helpLines = @(
+            "Keys:",
+            "  Up/Down: Move cursor within page",
+            "  Left/Right: Previous/next page",
+            "  Space: Toggle current item",
+            "  A: Select all",
+            "  N: Select none",
+            "  R: Refresh package lists",
+            "  Enter: Apply selected",
+            "  Esc: Back to main menu",
+            "  ?: Hide help"
+        )
+        foreach ($helpLine in $helpLines) {
+            Write-Host (Truncate-ConsoleLine -Text $helpLine -MaxWidth $maxWidth)
+        }
+    }
+    else {
+        $keysLine = "Esc cancel | Arrows move | Space select | ? keys"
+        Write-Host (Truncate-ConsoleLine -Text $keysLine -MaxWidth $maxWidth)
+    }
 }
 
 function Build-SyncItems {
@@ -356,11 +418,11 @@ while ($true) {
 
         $key = [System.Console]::ReadKey($true)
         if ($key.Key -eq [ConsoleKey]::UpArrow) {
-            $mainCursor = ($mainCursor - 1 + $mainOptions.Count) % $mainOptions.Count
+            $mainCursor = [Math]::Max(0, $mainCursor - 1)
             continue
         }
         if ($key.Key -eq [ConsoleKey]::DownArrow) {
-            $mainCursor = ($mainCursor + 1) % $mainOptions.Count
+            $mainCursor = [Math]::Min($mainOptions.Count - 1, $mainCursor + 1)
             continue
         }
         if ($key.Key -eq [ConsoleKey]::Escape) { $mainCursor = 4; break }
@@ -437,21 +499,71 @@ while ($true) {
             "Update Mode (default selection: none)"
         }
         $cursorIndex = 0
+        $pageIndex = 0
+        $showKeysHelp = $false
         while ($true) {
-            if ($items.Count -eq 0) { $cursorIndex = 0 }
-            elseif ($cursorIndex -ge $items.Count) { $cursorIndex = $items.Count - 1 }
-            elseif ($cursorIndex -lt 0) { $cursorIndex = 0 }
+            $pageSize = Get-ListPageSize
+            $totalPages = 1
+            $pageStart = 0
+            $pageEnd = -1
+            if ($items.Count -eq 0) {
+                $cursorIndex = 0
+                $pageIndex = 0
+            }
+            else {
+                if ($cursorIndex -ge $items.Count) { $cursorIndex = $items.Count - 1 }
+                elseif ($cursorIndex -lt 0) { $cursorIndex = 0 }
 
-            Show-Items -Title $title -Items $items -CursorIndex $cursorIndex
+                $totalPages = [Math]::Max(1, [int][Math]::Ceiling($items.Count / [double]$pageSize))
+                if ($pageIndex -ge $totalPages) { $pageIndex = $totalPages - 1 }
+                elseif ($pageIndex -lt 0) { $pageIndex = 0 }
+
+                $pageStart = $pageIndex * $pageSize
+                $pageEnd = [Math]::Min($items.Count - 1, $pageStart + $pageSize - 1)
+
+                if ($cursorIndex -lt $pageStart -or $cursorIndex -gt $pageEnd) {
+                    $cursorIndex = $pageStart
+                }
+            }
+
+            Show-Items -Title $title -Items $items -CursorIndex $cursorIndex -PageIndex $pageIndex -PageSize $pageSize -ShowHelp $showKeysHelp
             $key = [System.Console]::ReadKey($true)
 
+            if ($key.KeyChar -eq '?') {
+                $showKeysHelp = -not $showKeysHelp
+                continue
+            }
             if ($key.Key -eq [ConsoleKey]::Escape) { break }
             if ($key.Key -eq [ConsoleKey]::UpArrow) {
-                if ($items.Count -gt 0) { $cursorIndex = ($cursorIndex - 1 + $items.Count) % $items.Count }
+                if ($items.Count -gt 0 -and $cursorIndex -gt $pageStart) { $cursorIndex-- }
                 continue
             }
             if ($key.Key -eq [ConsoleKey]::DownArrow) {
-                if ($items.Count -gt 0) { $cursorIndex = ($cursorIndex + 1) % $items.Count }
+                if ($items.Count -gt 0 -and $cursorIndex -lt $pageEnd) { $cursorIndex++ }
+                continue
+            }
+            if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+                if ($items.Count -gt 0) {
+                    if ($pageIndex -gt 0) {
+                        $rowOffset = [Math]::Max(0, $cursorIndex - $pageStart)
+                        $pageIndex--
+                        $newStart = $pageIndex * $pageSize
+                        $newEnd = [Math]::Min($items.Count - 1, $newStart + $pageSize - 1)
+                        $cursorIndex = [Math]::Min($newEnd, $newStart + $rowOffset)
+                    }
+                }
+                continue
+            }
+            if ($key.Key -eq [ConsoleKey]::RightArrow) {
+                if ($items.Count -gt 0) {
+                    if ($pageIndex -lt ($totalPages - 1)) {
+                        $rowOffset = [Math]::Max(0, $cursorIndex - $pageStart)
+                        $pageIndex++
+                        $newStart = $pageIndex * $pageSize
+                        $newEnd = [Math]::Min($items.Count - 1, $newStart + $pageSize - 1)
+                        $cursorIndex = [Math]::Min($newEnd, $newStart + $rowOffset)
+                    }
+                }
                 continue
             }
             if ($key.Key -eq [ConsoleKey]::Spacebar) {
