@@ -31,6 +31,7 @@
     pf = push --force-with-lease
     aa = add .
     cm = commit -m
+    aliases = "!git config --get-regexp ^alias\\. | sed 's/^alias\\.//'"
 
 [core]
     editor = code --wait
