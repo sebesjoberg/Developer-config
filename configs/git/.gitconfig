@@ -8,7 +8,7 @@
     autoStash = true
 
 [fetch]
-    prune = true
+    prune = false
 
 [init]
     defaultBranch = main
@@ -39,7 +39,3 @@
 
 [merge]
     conflictstyle = zdiff3
-
-[pull]
-    rebase = true
-
