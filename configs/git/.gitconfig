@@ -31,6 +31,7 @@
     pf = push --force-with-lease
     aa = add .
     cm = commit -m
+    rb = branch -m
     aliases = "!f(){ search=''; compact=0; while [ $# -gt 0 ]; do case \"$1\" in --search|-S) shift; if [ $# -eq 0 ]; then echo \"aliases: missing value for search option\" >&2; return 1; fi; search=\"$1\" ;; --compact|-C) compact=1 ;; *) echo \"usage: git aliases [--search|-S <term>] [--compact|-C]\" >&2; return 1 ;; esac; shift; done; print_alias(){ name=\"$1\"; cmd=$(git config --get \"alias.$name\"); desc=$(git config --get \"aliashelp.$name\" 2>/dev/null); if [ -z \"$desc\" ]; then desc=\"(no description)\"; fi; if [ -n \"$search\" ]; then printf '%s %s\\n' \"$name\" \"$cmd\" | grep -Fqi -- \"$search\" || return 0; fi; if [ \"$compact\" -eq 1 ]; then if [ \"$name\" = \"aliases\" ]; then printf '%-12s %s\\n' \"$name\" \"print all aliases\"; else printf '%-12s %s\\n' \"$name\" \"$cmd\"; fi; else echo \"$name\"; echo \"  help: $desc\"; case \"$cmd\" in '!'*) echo \"  command: [shell alias]\" ;; *) echo \"  command: $cmd\" ;; esac; echo; fi; }; names=$(git config --name-only --get-regexp '^alias\\.' | sed 's/^alias\\.//' | sort -u); printf '%s\\n' \"$names\" | while read -r name; do [ -n \"$name\" ] || continue; [ \"$name\" = \"aliases\" ] && continue; print_alias \"$name\"; done; printf '%s\\n' \"$names\" | grep -Fxq aliases && print_alias aliases; }; f"
 
 [aliashelp]
@@ -47,6 +48,7 @@
     pf = Force push safely with lease
     aa = Stage all current changes
     cm = Commit with message (-m)
+    rb = Rename current branch (git rb <new-name>)
     aliases = List git aliases with descriptions and commands (supports --search/-S and --compact/-C)
 
 [core]
