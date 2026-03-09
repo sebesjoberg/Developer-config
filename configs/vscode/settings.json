@@ -30,5 +30,10 @@
     "http://json.schemastore.org": true,
     "https://biomejs.dev": true
   },
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "claudeCode.useTerminal": true,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "security.workspace.trust.untrustedFiles": "open"
 }

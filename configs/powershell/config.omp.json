@@ -139,6 +139,17 @@
           "type": "root"
         },
         {
+          "background": "#0077c2",
+          "background_templates": [
+            "{{ if ge .TokenUsagePercent 80 }}#ff0000{{ end }}"
+          ],
+          "foreground": "#ffffff",
+          "powerline_symbol": "\ue0b0",
+          "style": "powerline",
+          "template": " \udb82\udfc9 {{ .Model.DisplayName }} \uf2d0 {{ .TokenUsagePercent.Gauge }} <d>({{ .TokenUsagePercent }})</d> ",
+          "type": "claude"
+        },
+        {
           "background": "#83769c",
           "foreground": "#ffffff",
           "options": {
