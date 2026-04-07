@@ -3,8 +3,8 @@
   "terminal.integrated.defaultProfile.windows": "PowerShell",
   "terminal.integrated.profiles.windows": {
     "PowerShell": {
-      "path": "pwsh.exe"
-    }
+      "path": "pwsh.exe",
+    },
   },
   "editor.fontFamily": "JetBrains Mono, Consolas, 'Courier New', monospace",
   "editor.fontLigatures": true,
@@ -28,12 +28,22 @@
     "https://json-schema.org/": true,
     "https://aka.ms": true,
     "http://json.schemastore.org": true,
-    "https://biomejs.dev": true
+    "https://biomejs.dev": true,
   },
   "editor.formatOnSave": true,
   "claudeCode.useTerminal": true,
   "[json]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
+    "editor.defaultFormatter": "vscode.json-language-features",
   },
-  "security.workspace.trust.untrustedFiles": "open"
+  "security.workspace.trust.untrustedFiles": "open",
+  "github.copilot.chat.agentDebugLog.enabled": true,
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "workbench.colorTheme": "Visual Studio 2019 Dark",
+  "gitlens.ai.model": "vscode",
+  "gitlens.ai.vscode.model": "copilot:gpt-4.1",
+  "diffEditor.ignoreTrimWhitespace": false,
+  "git.mergeEditor": true,
+  "git.terminalGitEditor": true,
 }
