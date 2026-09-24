@@ -80,6 +80,9 @@ List screen controls (options 1, 2, 4):
 - For keys only in user config: asks whether to add them to repo config.
 - For git machine-specific identity keys (`user.name`, `user.email`, `user.signingkey`): does not merge them into repo config.
 - For PowerShell profiles (`profile.ps1`): if target exists and is non-empty, asks before overwrite/link.
+- For Claude Code (`configs/claude/settings.json`): merges only the repo-managed keys (currently `statusLine`, which
+  points oh-my-posh at `C:\config.omp.json`) into `~/.claude/settings.json`. Missing keys are added; differing keys
+  ask before overwriting. Everything else in that file is machine-specific and left alone.
 - Then creates/refreshes symlinks to the repo-managed files. If linking is blocked, falls back to hard link, then file copy.
 
 ### Per-machine git identity
