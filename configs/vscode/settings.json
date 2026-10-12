@@ -30,5 +30,8 @@
     "http://json.schemastore.org": true,
     "https://biomejs.dev": true
   },
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+"redhat.telemetry.enabled": true,
+"terminal.integrated.mouseWheelScrollSensitivity": 3,
+"terminal.integrated.gpuAcceleration": "off"
 }
