@@ -68,4 +68,5 @@
     "vscode-insiders",
     "docker-desktop",
   ],
+  "remote.autoForwardPortsSource": "hybrid",
 }
