@@ -59,14 +59,14 @@ function Get-JsonMap {
     if ([string]::IsNullOrWhiteSpace($raw)) { return [ordered]@{} }
     $obj = $raw | ConvertFrom-Json
     $map = ConvertTo-HashtableCompat -InputObject $obj
-    if ($map -is [hashtable]) { return $map }
+    if ($map -is [System.Collections.IDictionary]) { return $map }
     return [ordered]@{}
 }
 
 function Save-JsonMap {
     param(
         [string]$Path,
-        [hashtable]$Map
+        [System.Collections.IDictionary]$Map
     )
     $json = $Map | ConvertTo-Json -Depth 100
     Set-Content -LiteralPath $Path -Value $json
@@ -94,7 +94,7 @@ function Merge-JsonSettingsToRepo {
     Write-Host "Reviewing $Label differences..."
 
     foreach ($key in @($repo.Keys)) {
-        if ($user.ContainsKey($key)) {
+        if ($user.Contains($key)) {
             $repoValue = Get-JsonComparable -Value $repo[$key]
             $userValue = Get-JsonComparable -Value $user[$key]
             if ($repoValue -ne $userValue) {
@@ -104,12 +104,56 @@ function Merge-JsonSettingsToRepo {
         }
     }
 
-    foreach ($key in @($user.Keys | Where-Object { -not $repo.ContainsKey($_) } | Sort-Object)) {
+    foreach ($key in @($user.Keys | Where-Object { -not $repo.Contains($_) } | Sort-Object)) {
         $addKey = Read-YesNoDefaultNo -Message "$Label key `"$key`" exists only in current config. Add it to repo config?"
         if ($addKey) { $repo[$key] = $user[$key] }
     }
 
     Save-JsonMap -Path $RepoPath -Map $repo
+}
+
+function Merge-JsonKeysToUser {
+    param(
+        [string]$RepoPath,
+        [string]$UserPath,
+        [string]$Label
+    )
+    if (-not (Test-Path -LiteralPath $RepoPath)) { return }
+
+    $repo = Get-JsonMap -Path $RepoPath
+    if ($repo.Count -eq 0) { return }
+    $user = Get-JsonMap -Path $UserPath
+
+    Write-Host ""
+    Write-Host "Applying $Label to $UserPath..."
+
+    $changed = $false
+    foreach ($key in @($repo.Keys)) {
+        if (-not $user.Contains($key)) {
+            $user[$key] = $repo[$key]
+            $changed = $true
+            Write-Host "Added $Label key `"$key`"."
+            continue
+        }
+        $repoValue = Get-JsonComparable -Value $repo[$key]
+        $userValue = Get-JsonComparable -Value $user[$key]
+        if ($repoValue -ne $userValue) {
+            $useRepo = Read-YesNoDefaultNo -Message "$Label key `"$key`" differs from repo. Overwrite user value with repo value?"
+            if ($useRepo) {
+                $user[$key] = $repo[$key]
+                $changed = $true
+            }
+        }
+    }
+
+    if (-not $changed) { return }
+
+    $userDir = Split-Path -Parent $UserPath
+    if ($userDir -and -not (Test-Path -LiteralPath $userDir)) {
+        New-Item -ItemType Directory -Path $userDir -Force | Out-Null
+    }
+    Save-JsonMap -Path $UserPath -Map $user
+    Write-Host "Updated $UserPath"
 }
 
 function Get-GitConfigMap {
@@ -333,6 +377,15 @@ $terminalSourceRelative = "configs/windows-terminal/settings.json"
 $terminalSource = Join-Path $repoRoot $terminalSourceRelative
 if (Test-IsSelected -RelativeSource $terminalSourceRelative) {
     Merge-JsonSettingsToRepo -RepoPath $terminalSource -UserPath $terminalTarget -Label "Windows Terminal settings"
+}
+
+# Claude Code: only the repo-managed keys (statusLine) are merged into the user's
+# settings.json. The rest of that file is machine-specific and is left untouched.
+$claudeTarget = "$HOME\.claude\settings.json"
+$claudeSourceRelative = "configs/claude/settings.json"
+$claudeSource = Join-Path $repoRoot $claudeSourceRelative
+if (Test-IsSelected -RelativeSource $claudeSourceRelative) {
+    Merge-JsonKeysToUser -RepoPath $claudeSource -UserPath $claudeTarget -Label "Claude Code settings"
 }
 
 foreach ($target in $links.Keys) {

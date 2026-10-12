@@ -1,6 +1,7 @@
 # Useful aliases
 Set-Alias ll Get-ChildItem
 Set-Alias g git
+Set-Alias k kubectl
 
 # Enable terminal icons when available
 if (Get-Module -ListAvailable -Name Terminal-Icons) {
